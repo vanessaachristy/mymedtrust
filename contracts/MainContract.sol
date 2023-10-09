@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.5.16;
+pragma solidity 0.8.2;
 pragma experimental ABIEncoderV2;
 
 contract MainContract {
@@ -12,7 +12,7 @@ contract MainContract {
         string email;
         string homeAddress;
         string phone;
-        uint256 userSince;
+        uint userSince;
     }
 
     struct Doctor {
@@ -58,20 +58,20 @@ contract MainContract {
         address patientAddr,
         string patientName,
         string patientIC,
-        uint256 timestamp
+        uint timestamp
     );
 
     event DoctorCreated(
         address doctorAddr,
         string doctorName,
         string doctorIC,
-        uint256 timestamp
+        uint timestamp
     );
 
     event WhitelistDoctor(
         address patientAddr,
         address doctorAddr,
-        uint256 timestamp
+        uint timestamp
     );
 
     event RecordCreated(
@@ -98,7 +98,7 @@ contract MainContract {
         require(!isPatient[userInfo.addr]);
         isPatient[patientAddress] = true;
 
-        uint256 timestamp = userInfo.userSince;
+        uint timestamp = userInfo.userSince;
         patientList[patientAddress].primaryInfo = userInfo;
         patientList[patientAddress].emergencyContact = _emergencyContact;
         patientList[patientAddress].emergencyNumber = _emergencyNumber;
@@ -108,12 +108,10 @@ contract MainContract {
 
         // address[] memory whitelistedDoctor;
         for (uint i = 0; i < _whitelistedDoctor.length; i++) {
-            require(
-                isDoctor[_whitelistedDoctor[i]],
-                "Whitelisted doctor contains non-doctor"
-            );
+            require(isDoctor[_whitelistedDoctor[i]]);
         }
         patientList[patientAddress].whitelistedDoctor = _whitelistedDoctor;
+        patientList[patientAddress].recordList = _recordList;
 
         totalPatients++;
 
@@ -136,7 +134,7 @@ contract MainContract {
         string[] memory _recordList
     ) public {
         address patientAddress = userInfo.addr;
-        require(isPatient[patientAddress], "Address is not a patient!");
+        require(isPatient[patientAddress]);
         // Update all except address & userSince
         patientList[patientAddress].primaryInfo.IC = userInfo.IC;
         patientList[patientAddress].primaryInfo.name = userInfo.name;
@@ -155,10 +153,7 @@ contract MainContract {
 
         // address[] memory whitelistedDoctor;
         for (uint i = 0; i < _whitelistedDoctor.length; i++) {
-            require(
-                isDoctor[_whitelistedDoctor[i]],
-                "Whitelisted doctor contains non-doctor"
-            );
+            require(isDoctor[_whitelistedDoctor[i]]);
         }
         patientList[patientAddress].whitelistedDoctor = _whitelistedDoctor;
         patientList[patientAddress].recordList = _recordList;
@@ -168,19 +163,47 @@ contract MainContract {
         address doctorAddress,
         address patientAddress
     ) public {
-        require(isDoctor[doctorAddress], "Address is not a doctor!");
-        require(isPatient[patientAddress], "Address is not a patient!");
+        require(isDoctor[doctorAddress]);
+        require(isPatient[patientAddress]);
         patientList[patientAddress].whitelistedDoctor.push(doctorAddress);
 
         emit WhitelistDoctor(doctorAddress, patientAddress, block.timestamp);
     }
 
+    function removeWhitelistedDoctor(
+        address doctorAddress,
+        address patientAddress
+    ) public {
+        require(isDoctor[doctorAddress]);
+        require(isPatient[patientAddress]);
+
+        for (
+            uint i = 0;
+            i < patientList[patientAddress].whitelistedDoctor.length;
+            i++
+        ) {
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        patientList[patientAddress].whitelistedDoctor[i]
+                    )
+                ) == keccak256(abi.encodePacked(doctorAddress))
+            ) {
+                patientList[patientAddress].whitelistedDoctor[i] = patientList[
+                    patientAddress
+                ].whitelistedDoctor[
+                        patientList[patientAddress].whitelistedDoctor.length - 1
+                    ];
+                patientList[patientAddress].whitelistedDoctor.pop();
+                break;
+            }
+        }
+    }
+
     function getPatientDetails(
         address patientAddress
     ) public view returns (Patient memory) {
-        if (isPatient[patientAddress]) {
-            return patientList[patientAddress];
-        }
+        return patientList[patientAddress];
     }
 
     function createDoctor(
@@ -192,7 +215,7 @@ contract MainContract {
         require(!isDoctor[doctorAddress]);
 
         isDoctor[doctorAddress] = true;
-        uint256 timestamp = userInfo.userSince;
+        uint timestamp = userInfo.userSince;
 
         doctorList[doctorAddress].primaryInfo = userInfo;
         doctorList[doctorAddress].qualification = _qualification;
@@ -214,7 +237,7 @@ contract MainContract {
         string memory _major
     ) public {
         address doctorAddress = userInfo.addr;
-        require(isDoctor[doctorAddress], "Address is not a doctor!");
+        require(isDoctor[doctorAddress]);
 
         // Update all except address & userSince
         doctorList[doctorAddress].primaryInfo.IC = userInfo.IC;
@@ -232,9 +255,7 @@ contract MainContract {
     function getDoctorDetails(
         address doctorAddress
     ) public view returns (Doctor memory) {
-        if (bytes(doctorList[doctorAddress].primaryInfo.name).length > 0) {
-            return doctorList[doctorAddress];
-        }
+        return doctorList[doctorAddress];
     }
 
     function createRecord(
@@ -243,10 +264,10 @@ contract MainContract {
         address _issuerDoctorAddr,
         address _patientAddr
     ) public {
-        require(isDoctor[_issuerDoctorAddr], "Address is not a doctor!");
-        require(isPatient[_patientAddr], "Address is not a patient!");
+        require(isDoctor[_issuerDoctorAddr]);
+        require(isPatient[_patientAddr]);
 
-        uint256 timestamp = block.timestamp;
+        uint timestamp = block.timestamp;
         RecordStatus recordStatus = RecordStatus.PENDING;
 
         recordList[_encryptedID].encryptedID = _encryptedID;
@@ -279,7 +300,7 @@ contract MainContract {
         address _issuerDoctorAddr,
         RecordStatus _recordStatus
     ) public {
-        uint256 timestamp = block.timestamp;
+        uint timestamp = block.timestamp;
         recordList[_encryptedID].encryptedID = _encryptedID;
         recordList[_encryptedID].dataHash = _dataHash;
         recordList[_encryptedID].issuerDoctorAddr = _issuerDoctorAddr;
@@ -291,7 +312,7 @@ contract MainContract {
         string memory _encryptedID,
         address _patientAddress
     ) public {
-        require(isPatient[_patientAddress], "Address is not a patient!");
+        require(isPatient[_patientAddress]);
         delete recordList[_encryptedID];
 
         for (
