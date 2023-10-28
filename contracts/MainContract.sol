@@ -21,19 +21,20 @@ contract MainContract {
         string major;
     }
 
-    enum RecordStatus {
-        PENDING,
-        COMPLETED,
-        DECLINED
-    }
+    // enum RecordStatus {
+    //     PENDING,
+    //     COMPLETED,
+    //     DECLINED
+    // }
 
-    struct Record {
-        string encryptedID;
-        string dataHash;
-        address issuerDoctorAddr;
-        uint timestamp;
-        RecordStatus recordStatus;
-    }
+    // struct Record {
+    //     string encryptedID;
+    //     string dataHash;
+    //     address issuerDoctorAddr;
+    //     address patientAddr;
+    //     uint timestamp;
+    //     RecordStatus recordStatus;
+    // }
 
     struct Patient {
         User primaryInfo;
@@ -48,9 +49,11 @@ contract MainContract {
 
     uint public totalPatients = 0;
     uint public totalDoctors = 0;
+    mapping(uint => address) public patients;
+    mapping(uint => address) public doctors;
     mapping(address => Patient) public patientList;
     mapping(address => Doctor) public doctorList;
-    mapping(string => Record) public recordList;
+    // mapping(string => Record) public recordList;
     mapping(address => bool) isPatient;
     mapping(address => bool) isDoctor;
 
@@ -74,14 +77,14 @@ contract MainContract {
         uint timestamp
     );
 
-    event RecordCreated(
-        string encryptedID,
-        string dataHash,
-        address issuerDoctorAddr,
-        uint timestamp,
-        RecordStatus recordStatus,
-        address patientAddr
-    );
+    // event RecordCreated(
+    //     string encryptedID,
+    //     string dataHash,
+    //     address issuerDoctorAddr,
+    //     uint timestamp,
+    //     RecordStatus recordStatus,
+    //     address patientAddr
+    // );
 
     function createPatient(
         User memory userInfo,
@@ -114,6 +117,8 @@ contract MainContract {
         patientList[patientAddress].recordList = _recordList;
 
         totalPatients++;
+
+        patients[totalPatients] = patientAddress;
 
         emit PatientCreated(
             userInfo.addr,
@@ -223,6 +228,8 @@ contract MainContract {
 
         totalDoctors++;
 
+        doctors[totalDoctors] = doctorAddress;
+
         emit DoctorCreated(
             userInfo.addr,
             userInfo.name,
@@ -260,60 +267,59 @@ contract MainContract {
 
     function createRecord(
         string memory _encryptedID,
-        string memory _dataHash,
-        address _issuerDoctorAddr,
+        // string memory _dataHash,
+        // address _issuerDoctorAddr,
         address _patientAddr
     ) public {
-        require(isDoctor[_issuerDoctorAddr]);
-        require(isPatient[_patientAddr]);
+        // require(isDoctor[_issuerDoctorAddr]);
+        // require(isPatient[_patientAddr]);
 
-        uint timestamp = block.timestamp;
-        RecordStatus recordStatus = RecordStatus.PENDING;
+        // uint timestamp = block.timestamp;
+        // RecordStatus recordStatus = RecordStatus.PENDING;
 
-        recordList[_encryptedID].encryptedID = _encryptedID;
-        recordList[_encryptedID].dataHash = _dataHash;
-        recordList[_encryptedID].issuerDoctorAddr = _issuerDoctorAddr;
-        recordList[_encryptedID].timestamp = timestamp;
-        recordList[_encryptedID].recordStatus = recordStatus;
+        // recordList[_encryptedID].encryptedID = _encryptedID;
+        // recordList[_encryptedID].dataHash = _dataHash;
+        // recordList[_encryptedID].issuerDoctorAddr = _issuerDoctorAddr;
+        // recordList[_encryptedID].patientAddr = _patientAddr;
+        // recordList[_encryptedID].timestamp = timestamp;
+        // recordList[_encryptedID].recordStatus = recordStatus;
 
         patientList[_patientAddr].recordList.push(_encryptedID);
 
-        emit RecordCreated(
-            _encryptedID,
-            _dataHash,
-            _issuerDoctorAddr,
-            timestamp,
-            recordStatus,
-            _patientAddr
-        );
+        // emit RecordCreated(
+        //     _encryptedID,
+        //     _dataHash,
+        //     _issuerDoctorAddr,
+        //     timestamp,
+        //     recordStatus,
+        //     _patientAddr
+        // );
     }
 
-    function getRecordDetails(
-        string memory _encryptedID
-    ) public view returns (Record memory) {
-        return recordList[_encryptedID];
-    }
+    // function getRecordDetails(
+    //     string memory _encryptedID
+    // ) public view returns (Record memory) {
+    //     return recordList[_encryptedID];
+    // }
 
-    function editRecord(
-        string memory _encryptedID,
-        string memory _dataHash,
-        address _issuerDoctorAddr,
-        RecordStatus _recordStatus
-    ) public {
-        uint timestamp = block.timestamp;
-        recordList[_encryptedID].encryptedID = _encryptedID;
-        recordList[_encryptedID].dataHash = _dataHash;
-        recordList[_encryptedID].issuerDoctorAddr = _issuerDoctorAddr;
-        recordList[_encryptedID].timestamp = timestamp;
-        recordList[_encryptedID].recordStatus = _recordStatus;
-    }
+    // function editRecord(
+    //     string memory _encryptedID,
+    //     string memory _dataHash,
+    //     RecordStatus _recordStatus
+    // ) public {
+    //     uint timestamp = block.timestamp;
+    //     recordList[_encryptedID].encryptedID = _encryptedID;
+    //     recordList[_encryptedID].dataHash = _dataHash;
+    //     recordList[_encryptedID].timestamp = timestamp;
+    //     recordList[_encryptedID].recordStatus = _recordStatus;
+    // }
 
     function removeRecord(
         string memory _encryptedID,
         address _patientAddress
     ) public {
         require(isPatient[_patientAddress]);
-        delete recordList[_encryptedID];
+        // delete recordList[_encryptedID];
 
         for (
             uint i = 0;

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "chai": "^4.3.10",
-    "hardhat": "^2.18.0"
+    "hardhat": "^2.18.0",
+    "truffle-contract-size": "^2.0.1"
   }
 }

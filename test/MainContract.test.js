@@ -1,19 +1,29 @@
 const { assert } = require("chai");
 
 const MainContract = artifacts.require("./MainContract.sol");
+const RecordContract = artifacts.require("./RecordContract.sol");
 
 contract("Main", (accounts) => {
 
     before(async () => {
         this.mainContract = await MainContract.deployed();
+        this.recordContract = await RecordContract.deployed();
     })
 
-    it("deployed successfully", async () => {
+    it("main deployed successfully", async () => {
         const address = await this.mainContract.address;
         assert.notEqual(address, "");
         assert.notEqual(address, null);
         assert.notEqual(address, undefined);
     })
+
+    it("record deployed successfully", async () => {
+        const address = await this.recordContract.address;
+        assert.notEqual(address, "");
+        assert.notEqual(address, null);
+        assert.notEqual(address, undefined);
+    })
+
     it("create patient", async () => {
         let unixTS = Math.floor(new Date().getTime() / 1000);
         const patientAddress = accounts[0];
@@ -46,6 +56,7 @@ contract("Main", (accounts) => {
 
     it("getPatientByAddress: invalid case", async () => {
         const patient = await this.mainContract.getPatientDetails.call(accounts[5]);
+        console.log(patient)
         assert.equal(patient.primaryInfo.addr, "0x0000000000000000000000000000000000000000");
         assert.equal(patient.primaryInfo.name, "");
     })
@@ -228,22 +239,25 @@ contract("Main", (accounts) => {
 
     it("create new record", async () => {
         const patientAddress = accounts[0];
-        const result = await this.mainContract.createRecord.sendTransaction("abcdef123", "abcdef1234567", accounts[1], patientAddress, { from: accounts[0] });
+        const result = await this.recordContract.createRecord.sendTransaction("abcdef123", "abcdef1234567", accounts[1], patientAddress, { from: accounts[0] });
+        const patientResult = await this.mainContract.createRecord.sendTransaction("abcdef123", patientAddress, { from: accounts[0] });
+
         const record = result.logs[0].args;
         assert.equal(record.encryptedID, "abcdef123");
         assert.equal(record.dataHash, "abcdef1234567");
         assert.equal(record.recordStatus.toNumber(), 0);
         assert.equal(record.patientAddr, accounts[0]);
+
+
         const patient = await this.mainContract.getPatientDetails.call(patientAddress);
         assert.equal(patient.recordList.includes("abcdef123"), true);
-        const _record = await this.mainContract.getRecordDetails.call("abcdef123");
     })
 
     it("edit record", async () => {
-        await this.mainContract.editRecord.sendTransaction("abcdef123", "efgh1234567", accounts[1], MainContract.RecordStatus.COMPLETED, { from: accounts[0] });
-        const record = await this.mainContract.getRecordDetails.call("abcdef123");
+        await this.recordContract.editRecord.sendTransaction("abcdef123", "efgh1234567", RecordContract.RecordStatus.COMPLETED, { from: accounts[0] });
+        const record = await this.recordContract.getRecordDetails.call("abcdef123");
         assert.equal(record.dataHash, "efgh1234567")
-        assert.equal(record.recordStatus, MainContract.RecordStatus.COMPLETED)
+        assert.equal(record.recordStatus, RecordContract.RecordStatus.COMPLETED)
     })
 
     it("delete record", async () => {
@@ -251,9 +265,12 @@ contract("Main", (accounts) => {
         const before = await this.mainContract.getPatientDetails.call(accounts[0]);
         assert.equal(before.recordList.includes(recordID), true);
         await this.mainContract.removeRecord.sendTransaction(recordID, accounts[0], { from: accounts[0] });
+        await this.recordContract.removeRecord.sendTransaction(recordID, { from: accounts[0] });
+
         const after = await this.mainContract.getPatientDetails.call(accounts[0]);
         assert.equal(after.recordList.includes(recordID), false);
-        const recordList = await this.mainContract.recordList(recordID);
+
+        const recordList = await this.recordContract.recordList(recordID);
         assert.equal(recordList.encryptedID, "");
     })
 })
